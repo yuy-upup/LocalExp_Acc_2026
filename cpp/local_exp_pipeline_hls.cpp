@@ -71,18 +71,15 @@ float unaryCostCalc(uchar gray_l, uchar gray_r, uint64_t census_l, uint64_t cens
 ap_uint<32> randMwc(ap_uint<32>* q, ap_uint<32>& i, ap_uint<32>& c)
 {
 #pragma HLS inline off
-    ap_uint<64> t, a = 18782LL;
-    // static ap_uint<32> i = 4095;
-    ap_uint<32> x, r = 0xfffffffe;
-    i = (i + 1) & 4095;
-    t = a * q[i] + c;
-    c = (t >> 32);
-    x = t + c;
-    if (x < c) {
-        x++;
-        c++;
-    }
-    return (q[i] = r - x);
+    // === replaced MWC by xorshift (same algorithm as randXor); c is the 32-bit state ===
+    (void)q; (void)i;
+    if (c == 0) c = 0x9E3779B9u;
+    ap_uint<32> x = c;
+    x ^= x << 13;
+    x ^= x >> 17;
+    x ^= x << 5;
+    c = x;
+    return x;
 }
 
 template<size_t CUR_SIZE>
@@ -10336,15 +10333,15 @@ void localExpLayer2(float ddr_unary_cost[WIDTH * HEIGHT * DISP_MAX], uchar ddr_i
 #if COST_LOAD_MODE == 1
 void localExpLayers(
 #if PROPOSER_RANDOM_INIT == 1 
-   ap_uint<32> l0_random_num[LAYER0_PROP_NUM][3], ap_uint<32> l1_random_num[LAYER1_PROP_NUM][3], 
+//   ap_uint<32> l0_random_num[LAYER0_PROP_NUM][3], ap_uint<32> l1_random_num[LAYER1_PROP_NUM][3], 
 #endif // PROPOSER_RANDOM_INIT == 1
     unary_cost_t0 ddr_unary_cost_layer0[WIDTH * HEIGHT * DISP_DDR_MAX0], 
-    uchar ddr_im0_gray_layer0[WIDTH * HEIGHT], 
-   unary_cost_t0 ddr_unary_cost_layer1[WIDTH * HEIGHT * DISP_DDR_MAX0], uchar ddr_im0_gray_layer1[WIDTH * HEIGHT], 
+//    uchar ddr_im0_gray_layer0[WIDTH * HEIGHT], 
+//   unary_cost_t0 ddr_unary_cost_layer1[WIDTH * HEIGHT * DISP_DDR_MAX0], uchar ddr_im0_gray_layer1[WIDTH * HEIGHT], 
 #if LAYER2_ENABLE == 1
     unary_cost_t ddr_unary_cost_layer2[WIDTH * HEIGHT * DISP_DDR_MAX], uchar ddr_im0_gray_layer2[WIDTH * HEIGHT], 
 #endif
-    ap_uint<DISP_DDR_BIT> ddr_cost[WIDTH * HEIGHT], label_range ddr_label[WIDTH * HEIGHT * 3], 
+//    ap_uint<DISP_DDR_BIT> ddr_cost[WIDTH * HEIGHT], label_range ddr_label[WIDTH * HEIGHT * 3], 
     disp_range ddr_disp[WIDTH * HEIGHT]) {
         /*
 #elif COST_LOAD_MODE == 1 && SCAN_DIRECTION == 1
@@ -10393,7 +10390,7 @@ l00_random_num[2][2] = 1805160153;
 #if COST_LOAD_MODE == 1 
         localExpLayer0(
 #if PROPOSER_RANDOM_INIT == 1
-        l0_random_num, 
+        l00_random_num, 
 #endif // #if PROPOSER_RANDOM_INIT == 1
         ddr_unary_cost_layer0, 
 #if SCAN_DIRECTION == 0 
